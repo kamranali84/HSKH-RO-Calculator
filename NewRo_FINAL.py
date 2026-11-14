@@ -32,13 +32,21 @@ from reportlab.lib.units import mm
 from reportlab.platypus import KeepTogether, PageBreak, Paragraph, SimpleDocTemplate, Spacer, Table, TableStyle
 
 APP_TITLE = "HSKH RO Calculator"
+try:
+    _cfg = Path(__file__).resolve().parent / ".streamlit" / "config.toml"
+    if not _cfg.exists():
+        _cfg.parent.mkdir(parents=True, exist_ok=True)
+        _cfg.write_text('[theme]\nbase = "light"\nprimaryColor = "#2F86C0"\nbackgroundColor = "#F4F6F8"\n'
+                        'secondaryBackgroundColor = "#E3F0FC"\ntextColor = "#14202B"\n', encoding="utf-8")
+except OSError:
+    pass
 st.set_page_config(page_title=APP_TITLE, page_icon="💧", layout="wide", initial_sidebar_state="expanded")
 ss = st.session_state
 
 # =====================================================
 # SETTINGS
 # =====================================================
-THEME = "sky blue"                    # "sky blue" (bluish gradient, white boxes / tabs, black text), "metal blue", "light blue", "grey", "grey green", "light brown" or "charcoal"
+THEME = "plain"                       # "sky blue" (bluish gradient, white boxes / tabs, black text), "metal blue", "light blue", "grey", "grey green", "light brown" or "charcoal"
 APP_WIDTH_VW = 60
 PROJECT_DIR = Path(__file__).resolve().parent / "HSKH_RO_Projects"
 PROJECT_EXT = ".ro"
@@ -103,8 +111,9 @@ IMS_EXAMPLE = {
     "p2_stages": 2, "p2_s1_v": 4, "p2_s1_e": 6, "p2_s2_v": 2, "p2_s2_e": 6, "p1_chem": "None", "p1_ph": 6.0,
     "p2_chem": "NaOH", "p2_ph": 8.2, "as_dose_manual": 3.0, "as_mode": "Manual dose"}
 DEF_STAGE = {1: {1: (6, 6), 2: (3, 6), 3: (2, 6)}, 2: {1: (4, 6), 2: (2, 6), 3: (1, 6)},
-             3: {1: (4, 6), 2: (2, 6), 3: (1, 6)}, 4: {1: (4, 6), 2: (2, 6), 3: (1, 6)}}
-MAX_PASSES = 4
+             3: {1: (4, 6), 2: (2, 6), 3: (1, 6)}, 4: {1: (4, 6), 2: (2, 6), 3: (1, 6)},
+             5: {1: (4, 6), 2: (2, 6), 3: (1, 6)}, 6: {1: (4, 6), 2: (2, 6), 3: (1, 6)}}
+MAX_PASSES = 6
 
 
 def fmt(v, d=1, unit=""):
@@ -1265,6 +1274,18 @@ def build_pdf_report():
 # LOOK & FEEL  (themes: page / sidebar gradient + box colours)
 # =====================================================
 THEMES = {
+    # plain light theme: flat light-grey page, no blue gradient anywhere
+    "plain": {
+        "__BG__": "#F4F6F8", "__SIDE__": "linear-gradient(135deg, #1B3F66 0%, #5A82AC 14%, #2A5483 30%, #6C94BE 46%, #2F5B8C 62%, #5A82AC 80%, #1B3F66 100%)", "__HTXT__": "#14202B", "__HSUB__": "#4A5968",
+        "__HBG__": "rgba(244,246,248,.98)", "__PAGEH__": "#14202B", "__CHIPBG__": "#FFFFFF", "__CHIPBD__": "#C5CDD6", "__CHIPTX__": "#14202B",
+        "__ACC__": "#2F86C0", "__ACCD__": "#1D6397", "__TXT__": "#14202B", "__TXT2__": "#22303D", "__SUB__": "#4A5968",
+        "__CARDBG__": "#FFFFFF", "__CARDBD__": "#D5DCE3", "__TILEBG__": "#F8FAFB", "__TILEBD__": "#D5DCE3",
+        "__SHADOW__": "rgba(20,32,43,.10)",
+        "__NAVBG__": "rgba(255,255,255,.12)", "__NAVBD__": "rgba(255,255,255,.35)", "__SBBOX__": "rgba(255,255,255,.14)", "__SBBOXBD__": "rgba(255,255,255,.35)",
+        "__SBBG__": "linear-gradient(180deg, #4F78A3 0%, #2A5483 35%, #5A82AC 60%, #1B3F66 100%)",
+        "__SBTX__": "#FFFFFF", "__SBHV__": "rgba(255,255,255,.24)", "__SBBRAND__": "#FFFFFF",
+        "__NAVACTBG__": "#FFFFFF", "__NAVACTTX__": "#14202B", "__NAVBAR__": "#2F86C0", "__BTN1__": "#3E9BD4", "__BTN2__": "#2478AD",
+    },
     # bluish gradient page + sidebar, white boxes, white tabs, black text
     "sky blue": {
         "__BG__": "linear-gradient(135deg, #EAF3FC 0%, #BFD9F2 32%, #8DBBE8 68%, #5E9BD8 100%)", "__HTXT__": "#000000", "__HSUB__": "#1F2D3A",
@@ -1341,16 +1362,21 @@ def apply_layout_css():
     css = """
     <style>
     :root { color-scheme: light; }
-    #MainMenu, footer { visibility: hidden; }
+    footer { visibility: hidden; }
     [data-testid="stHeader"] { background: transparent; }
-    [data-testid="stToolbar"], [data-testid="stDecoration"] { visibility: hidden; }
+    [data-testid="stToolbarActions"], [data-testid="stAppDeployButton"], [data-testid="stDecoration"] { display: none !important; }
+    [data-testid="stToolbar"] { visibility: visible !important; background: transparent !important; }
+    [data-testid="stMainMenu"] { display: flex !important; visibility: visible !important; }
+    [data-testid="stMainMenu"] button, [data-testid="stMainMenu"] svg { color: #FFFFFF !important; fill: #FFFFFF !important; }
     [data-testid="stElementContainer"]:has(style), .element-container:has(style) { display: none !important; }
 
-    html, body, .stApp, [data-testid="stAppViewContainer"] { background: __SIDE__ !important; background-attachment: fixed !important; min-height: 100vh; }
+    html, body { background: #2A5483 !important; }
+    .stApp { background: __SIDE__ !important; min-height: 100vh; }
+    [data-testid="stAppViewContainer"] { background: transparent !important; }
     [data-testid="stMain"], [data-testid="stBottom"] > div { background: transparent !important; }
-    .block-container { max-width: __W__vw !important; padding: 0 12px 3rem 12px !important; background: __BG__; background-attachment: fixed; min-height: 100vh; box-shadow: 0 0 28px rgba(0,0,0,.55); margin-top: 0 !important; }
+    .block-container { max-width: __W__vw !important; padding: 0 12px 3rem 12px !important; background: __BG__; min-height: 100vh; box-shadow: 0 0 14px rgba(0,0,0,.14); margin-top: 0 !important; }
     @media (max-width: 1100px) { .block-container { max-width: 96vw !important; } }
-    .mdw { padding-bottom: 1rem; }
+    .mdw { padding-bottom: .1rem; }
 
     /* ---------- title band (stays on top while scrolling) ---------- */
     [data-testid="stElementContainer"]:has(.hdr), .element-container:has(.hdr) {
@@ -1410,7 +1436,7 @@ def apply_layout_css():
     [data-testid="stSidebar"] * { color:__SBTX__; }
     .sb-brand { font-size:24px; font-weight:900; letter-spacing:.5px; line-height:1.1; padding:6px 2px 12px 2px; border-bottom:2px solid __ACC__; }
     .sb-brand small { display:block; font-size:11px; font-weight:700; letter-spacing:2.5px; opacity:.8; text-transform:uppercase; margin-top:3px; }
-    .sb-brand, .sb-brand *, .sb-h { color:#F2F4F6 !important; }
+    .sb-brand, .sb-brand *, .sb-h { color:__SBBRAND__ !important; }
     .sb-h { font-size:11px; letter-spacing:2px; font-weight:800; opacity:.75; margin:10px 0 0 2px; text-transform:uppercase; }
     .sb-status { font-size:12px; background:__SBBOX__; border:1px solid __SBBOXBD__; border-radius:8px; padding:7px 10px; line-height:1.5; }
     .st-key-sidenav button { justify-content:flex-start; text-align:left; font-size:13px; padding:.4rem .6rem; border-radius:8px; margin-bottom:.05rem; }
@@ -1441,10 +1467,112 @@ def apply_layout_css():
     [data-testid="stNumberInput"] button svg { fill:#111111 !important; }
     [data-testid="stFileUploaderDropzone"] { background-color:#FFFFFF !important; border:1px dashed #7D848E !important; }
     [data-testid="stFileUploaderDropzone"] * { color:#111111 !important; }
+
+    /* ---------- compact sizing for all pages (the flow diagram itself is not affected) ---------- */
+    .block-container [data-testid="stVerticalBlock"] { gap: .3rem; }
+    [data-testid="stHorizontalBlock"] { gap: .6rem; }
+    [class*="st-key-card_"] { padding: 5px 9px 6px 9px; gap: .25rem; margin-bottom: .1rem; }
+    .card-title { font-size: 12px; padding-bottom: 2px; }
+    .page-h { font-size: 16px; margin: 2px 2px 0 2px; }
+    .sub { font-size: 10px; margin-top: 2px; }
+    .lhead { font-size: 9.5px; }
+    .hdr { padding: 3px 4px 7px 4px; }
+    .hdr-title { font-size: 17px; }
+    .hdr-sub { font-size: 9.5px; letter-spacing: 2px; margin-top: 2px; }
+    .tiles { grid-template-columns: repeat(auto-fill, minmax(104px, 1fr)); gap: 4px; }
+    .tile { padding: 2px 6px; min-height: 30px; }
+    .tile .t-l { font-size: 8px; }
+    .tile .t-v { font-size: 11px; }
+    .chk { padding: 2px 7px; font-size: 10.5px; margin-bottom: 2px; }
+    .eq { font-size: 11px; margin-top: .3rem; }
+    [data-testid="stWidgetLabel"] p, [data-testid="stWidgetLabel"] label p { font-size: 10px !important; line-height: 1.2; }
+    [data-testid="stWidgetLabel"] { min-height: 0; margin-bottom: 0; }
+    [data-testid="stNumberInputContainer"], [data-testid="stTextInputRootElement"] { min-height: 1.6rem !important; height: 1.6rem !important; }
+    [data-testid="stNumberInput"] input, [data-testid="stTextInput"] input { font-size: 11px !important; padding: .05rem .35rem !important; height: 1.5rem; }
+    [data-testid="stNumberInput"] button { min-height: 1.5rem !important; width: 1.5rem !important; }
+    [data-testid="stTextAreaRootElement"] textarea { font-size: 11px !important; }
+    [data-testid="stSelectbox"] div[data-baseweb="select"] > div { min-height: 1.6rem !important; height: 1.6rem !important; font-size: 11px !important; }
+    [data-testid="stSelectbox"] div[data-baseweb="select"] div, [data-testid="stSelectbox"] div[data-baseweb="select"] span { font-size: 11px !important; line-height: 1.2; }
+    [data-testid="stSelectbox"] svg { width: 14px; height: 14px; }
+    [data-testid="stCheckbox"] label p, [data-testid="stRadio"] label p, [data-testid="stCheckbox"] span, [data-testid="stRadio"] span { font-size: 10.5px !important; }
+    [data-testid="stCheckbox"] { min-height: 1.4rem; }
+    [data-testid="stRadio"] [role="radiogroup"] { gap: .3rem; }
+    [class*="st-key-card_"] [data-testid="stMarkdownContainer"] p { font-size: 11.5px; margin-bottom: .2rem; line-height: 1.35; }
+    .stCaption, [data-testid="stCaptionContainer"], [data-testid="stCaptionContainer"] p { font-size: 10px !important; line-height: 1.3; }
+    [data-testid="stAlert"] { padding: .2rem .5rem; font-size: 10.5px; }
+    [data-testid="stAlert"] p { font-size: 10.5px; }
+    [data-testid="stDataFrame"] { font-size: 10px; }
+    [data-testid="stFileUploaderDropzone"] { padding: .4rem .6rem; }
+    [data-testid="stFileUploaderDropzone"] * { font-size: 10.5px !important; }
+    .stButton button, .stDownloadButton button { font-size: 11px; padding: .1rem .4rem; min-height: 1.7rem; }
+    .stButton button p, .stDownloadButton button p { font-size: 11px; }
+    .st-key-sidenav button { font-size: 12px; padding: .3rem .5rem; }
+    .sb-brand { font-size: 20px; }
+    .sb-status { font-size: 11px; padding: 5px 8px; }
+
+    /* ---------- IMSDesign-style compact tables ---------- */
+    .rl { font-size: 10.5px; font-weight: 600; color: __TXT2__; line-height: 1.6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .calcbox, .ybox { height: 1.6rem; line-height: 1.5rem; padding: 0 .4rem; font-size: 11px; color: #111; border: 1px solid #7D848E; border-radius: 6px; overflow: hidden; white-space: nowrap; }
+    .calcbox { background: #E8EAED; text-align: right; }
+    .ybox { background: #FFF200; text-align: center; font-weight: 700; }
+    [class*="st-key-card_"] [data-testid="stVerticalBlock"] { gap: .2rem; }
+    [class*="st-key-card_"] [data-testid="stHorizontalBlock"] { gap: .4rem; }
+
+    .block-container { border-left: 4px solid __ACC__; border-right: 4px solid __ACC__; }
+
+    /* ---------- no overlap / no extra gaps ---------- */
+    [data-testid="stElementContainer"], .element-container { margin: 0 !important; min-width: 0; }
+    [data-testid="stColumn"], [data-testid="column"] { min-width: 0 !important; }
+    [class*="st-key-card_"] [data-testid="stHorizontalBlock"] [data-testid="stNumberInput"] button { display: none !important; }
+    [class*="st-key-card_"] [data-testid="stHorizontalBlock"] [data-testid="stNumberInput"] input { padding-right: .35rem !important; text-align: right; }
+    [data-testid="stMarkdownContainer"] { margin: 0 !important; }
+    [data-testid="stExpander"] { margin-bottom: .1rem; }
+    .page-h { padding-top: .3rem; }
+
+    /* ---------- collapsible flow-diagram panel (readable header, white box) ---------- */
+    [data-testid="stExpander"] { background: __CARDBG__; border: 1px solid __CARDBD__; border-left: 6px solid __ACC__; border-radius: 9px; box-shadow: 0 3px 10px __SHADOW__; }
+    [data-testid="stExpander"] details, [data-testid="stExpander"] summary { background: transparent !important; }
+    [data-testid="stExpander"] summary { padding: .35rem .7rem; }
+    [data-testid="stExpander"] summary p, [data-testid="stExpander"] summary span, [data-testid="stExpander"] summary svg { color: __TXT__ !important; fill: __TXT__ !important; font-size: 13px !important; font-weight: 800 !important; }
+    [data-testid="stExpander"] [data-testid="stExpanderDetails"] { padding: .2rem .6rem .5rem .6rem; }
+    /* ---------- blue data tables ---------- */
+    .bt-wrap { overflow-x: auto; border: 1px solid __ACC__; border-radius: 8px; background: #FFFFFF; }
+    table.bt { border-collapse: collapse; width: 100%; font-size: 12px; color: #14202B; }
+    table.bt thead tr { background: #1D6397; }
+    table.bt th { background: #1D6397; color: #FFFFFF !important; font-weight: 700; padding: 5px 8px; text-align: right; white-space: nowrap; border-right: 1px solid #3E86B8; }
+    table.bt th:first-child { text-align: left; }
+    table.bt td { padding: 4px 8px; text-align: right; white-space: nowrap; color: #14202B; border-top: 1px solid #C9DCEE; border-right: 1px solid #DCE8F4; }
+    table.bt td:first-child { text-align: left; font-weight: 600; }
+    table.bt tbody tr:nth-child(odd) td { background: #EAF3FC; }
+    table.bt tbody tr:nth-child(even) td { background: #FFFFFF; }
+    table.bt tbody tr:hover td { background: #D3E6F8; }
+
+    /* ---------- 3D title logo ---------- */
+    .logo3d { display: flex; align-items: center; gap: 12px; }
+    .t3d { display: block; font-family: "Arial Black", "Segoe UI Black", Impact, sans-serif; font-weight: 900; font-size: 30px; letter-spacing: 3px; line-height: 1; color: #2F86C0;
+           text-shadow: 0 -1px 0 #9ED0F2, 1px 1px 0 #1D6397, 2px 2px 0 #1A5A8D, 3px 3px 0 #164F7E, 4px 4px 0 #12446D, 5px 5px 0 #0F3A5E, 6px 8px 8px rgba(0,0,0,.35); }
+    .t3d-s { display: block; font-family: "Arial Black", "Segoe UI Black", Impact, sans-serif; font-weight: 900; font-size: 14px; letter-spacing: 6px; line-height: 1; margin-top: 7px; color: #5E6B78;
+             text-shadow: 0 -1px 0 #FFFFFF, 1px 1px 0 #3F4B57, 2px 2px 0 #343F4A, 3px 3px 3px rgba(0,0,0,.3); }
+    .sb-3d .t3d { font-size: 24px; color: #FFFFFF !important; text-shadow: 0 -1px 0 #D6ECFF, 1px 1px 0 #7FB6E6, 2px 2px 0 #2F86C0, 3px 3px 0 #1D6397, 4px 4px 0 #14497A, 5px 7px 7px rgba(0,0,0,.45); }
+    .sb-3d .t3d-s { color: #E3F0FC !important; text-shadow: 1px 1px 0 #1D6397, 2px 2px 0 #14497A, 3px 3px 3px rgba(0,0,0,.4); font-size: 11px; letter-spacing: 5px; }
+
+    /* ---------- banner header (teal -> blue gradient, 3D logo, white title) ---------- */
+    [data-testid="stElementContainer"]:has(.hdr), .element-container:has(.hdr) { background: transparent !important; padding: 0 !important; box-shadow: none !important; backdrop-filter: none !important; }
+    .hdr { display: flex; align-items: center; justify-content: flex-start; gap: 16px; padding: 10px 22px; margin: 0;
+           background: linear-gradient(100deg, #08203B 0%, #0F4478 42%, #1A74BC 75%, #27A2D6 100%); border-bottom: none; border-radius: 0 0 20px 20px; box-shadow: 0 5px 12px rgba(0,0,0,.28); }
+    .hdr-title3 { font-size: 28px; font-weight: 900; color: #FFD04A; line-height: 1.1; letter-spacing: .5px; text-shadow: 0 -1px 0 #FFF1B8, 1px 1px 0 #C98A00, 2px 2px 0 #A87000, 3px 3px 0 #7F5400, 4px 6px 5px rgba(0,0,0,.5); }
+    .hdr-sub3 { font-size: 12.5px; font-weight: 600; color: #FFFFFF; margin-top: 4px; text-shadow: 0 1px 2px rgba(0,0,0,.35); }
+
+    /* ---------- sidebar logo banner (matches the header colours) ---------- */
+    .sb-ban { background: linear-gradient(100deg, #08203B 0%, #0F4478 50%, #1A74BC 100%); border: none !important; border-radius: 14px; padding: 10px 12px !important; box-shadow: 0 4px 10px rgba(0,0,0,.3); }
+    .sb-t { font-size: 26px; font-weight: 900; letter-spacing: 2px; line-height: 1; color: #FFD04A !important; text-shadow: 0 -1px 0 #FFF1B8, 1px 1px 0 #C98A00, 2px 2px 0 #A87000, 3px 4px 4px rgba(0,0,0,.5); }
+    .sb-s { font-size: 11px; font-weight: 800; letter-spacing: 3.5px; margin-top: 5px; color: #FFFFFF !important; text-shadow: 1px 2px 0 rgba(0,0,0,.4); }
+
     </style>
     """
     tokens = {"__W__": str(APP_WIDTH_VW)}
     tokens.update(THEMES.get(THEME, THEMES["sky blue"]))
+    tokens.setdefault("__SBBRAND__", "#F2F4F6")
     tokens.setdefault("__SIDE__", tokens["__BG__"])      # colour of the page margins left / right of the content column
     for k, v in tokens.items():
         css = css.replace(k, v)
@@ -1456,6 +1584,51 @@ apply_layout_css()
 # =====================================================
 # UI HELPERS
 # =====================================================
+
+def logo_svg(uid, size=54):
+    """3D water-drop logo (radial shading, highlight, rim and ground shadow)."""
+    return (f'<svg width="{size}" height="{size}" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" style="flex:none;filter:drop-shadow(2px 3px 2px rgba(0,0,0,.35));">'
+            f'<defs><radialGradient id="lg{uid}" cx=".34" cy=".3" r=".85"><stop offset="0" stop-color="#E6F6FF"/><stop offset=".35" stop-color="#5DB0EA"/>'
+            f'<stop offset=".75" stop-color="#1D6397"/><stop offset="1" stop-color="#0A2E52"/></radialGradient>'
+            f'<linearGradient id="lw{uid}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF" stop-opacity=".75"/><stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/></linearGradient></defs>'
+            f'<ellipse cx="32" cy="60" rx="17" ry="3" fill="rgba(0,0,0,.28)"/>'
+            f'<path d="M32 4 C32 4 11 27 11 41 a21 21 0 0 0 42 0 C53 27 32 4 32 4 Z" fill="url(#lg{uid})" stroke="#0A2E52" stroke-width="1.6"/>'
+            f'<path d="M22 38 C22 31 27 24 30 18 C26 25 19 32 21 41 Z" fill="url(#lw{uid})"/>'
+            f'<ellipse cx="24" cy="30" rx="3.2" ry="6.5" transform="rotate(28 24 30)" fill="#FFFFFF" opacity=".55"/>'
+            f'<path d="M17 45 q7.5 -5 15 0 t15 0" fill="none" stroke="#BFE6FF" stroke-width="2" stroke-linecap="round" opacity=".85"/></svg>')
+
+
+def pond_logo_svg(size=66):
+    """3D RO logo: steel pressure vessel with clamp rings, feed port and membrane (spiral) end face, plus a permeate drop."""
+    w = int(size * 100 / 72)
+    return (f'<svg width="{w}" height="{size}" viewBox="0 0 100 72" xmlns="http://www.w3.org/2000/svg" style="flex:none;filter:drop-shadow(2px 4px 3px rgba(0,0,0,.45));">'
+            '<defs>'
+            '<linearGradient id="rvb" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#E4F1FF"/><stop offset=".16" stop-color="#9CC2E6"/><stop offset=".5" stop-color="#3F78AE"/>'
+            '<stop offset=".84" stop-color="#1B4170"/><stop offset="1" stop-color="#0D2745"/></linearGradient>'
+            '<linearGradient id="rvc" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".3" stop-color="#C9D6E3"/><stop offset=".7" stop-color="#6F8399"/><stop offset="1" stop-color="#3A4A5C"/></linearGradient>'
+            '<linearGradient id="rvp" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#3A4A5C"/><stop offset=".35" stop-color="#E4EDF6"/><stop offset="1" stop-color="#4C5F74"/></linearGradient>'
+            '<radialGradient id="rve" cx=".4" cy=".38" r=".85"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".55" stop-color="#BFD6EC"/><stop offset="1" stop-color="#6B93BC"/></radialGradient>'
+            '<radialGradient id="rvd" cx=".35" cy=".3" r=".9"><stop offset="0" stop-color="#FFFFFF"/><stop offset=".45" stop-color="#6FD0F7"/><stop offset="1" stop-color="#0F5C99"/></radialGradient>'
+            '</defs>'
+            '<ellipse cx="46" cy="66" rx="38" ry="4.5" fill="rgba(0,0,0,.38)"/>'
+            # feed / concentrate ports on top
+            '<rect x="38" y="11" width="11" height="14" fill="url(#rvp)"/><ellipse cx="43.5" cy="11" rx="5.5" ry="2.2" fill="#F4F9FF" stroke="#4C5F74" stroke-width=".8"/>'
+            '<rect x="34" y="21" width="19" height="4" rx="1" fill="url(#rvc)"/>'
+            # vessel body: rounded left end, cylinder, glossy end face on the right
+            '<ellipse cx="14" cy="39" rx="7" ry="17" fill="url(#rvb)"/>'
+            '<rect x="14" y="22" width="62" height="34" fill="url(#rvb)"/>'
+            '<rect x="26" y="21" width="5" height="36" rx="1" fill="url(#rvc)"/><rect x="58" y="21" width="5" height="36" rx="1" fill="url(#rvc)"/>'
+            '<rect x="16" y="25" width="58" height="3.5" rx="1.7" fill="#FFFFFF" opacity=".55"/>'
+            '<ellipse cx="76" cy="39" rx="7" ry="17" fill="url(#rve)" stroke="#2D5C8C" stroke-width="1"/>'
+            '<ellipse cx="76" cy="39" rx="5.6" ry="14.2" fill="none" stroke="#2F78B8" stroke-width="1.3"/>'
+            '<ellipse cx="76" cy="39" rx="4" ry="10.4" fill="none" stroke="#3E8CCB" stroke-width="1.2"/>'
+            '<ellipse cx="76" cy="39" rx="2.4" ry="6.2" fill="none" stroke="#2F78B8" stroke-width="1.1"/>'
+            '<ellipse cx="76" cy="39" rx="1.1" ry="2.6" fill="#0D2745"/>'
+            # permeate drop
+            '<path d="M91 24 C91 24 84.5 32.5 84.5 37.5 a6.5 6.5 0 0 0 13 0 C97.5 32.5 91 24 91 24 Z" fill="url(#rvd)" stroke="#0B4A7E" stroke-width="1"/>'
+            '<ellipse cx="88.6" cy="35" rx="1.5" ry="3.2" transform="rotate(20 88.6 35)" fill="#FFFFFF" opacity=".8"/></svg>')
+
+
 _CARD_N = [0]
 
 
@@ -1494,10 +1667,15 @@ def tiles(items):
 
 
 def show_df(df, **kw):
+    """Blue HTML table (replaces the black st.dataframe grid so every table in the app follows the blue theme)."""
+    hide_index = bool(kw.get("hide_index", False))
     try:
-        st.dataframe(df, width="stretch", **kw)
-    except TypeError:
-        st.dataframe(df, use_container_width=True, **kw)
+        html = df.to_html(index=not hide_index, border=0, classes="bt", escape=True, na_rep="-")
+    except Exception:
+        st.dataframe(df, **kw)
+        return
+    html = re.sub(r">\s+<", "><", html.replace("\n", ""))          # one line, so markdown never treats it as a code block
+    st.markdown(f'<div class="bt-wrap">{html}</div>', unsafe_allow_html=True)
 
 
 def checklist(checks):
@@ -1809,7 +1987,7 @@ def _cb_nav(key, value):
 
 
 with st.sidebar:
-    md('<div class="sb-brand">💧 HSKH<small>RO Calculator</small></div>')
+    md(f'<div class="sb-brand sb-ban"><div class="logo3d">{pond_logo_svg(56)}<div><div class="sb-t">HSKH</div><div class="sb-s">RO CALCULATOR</div></div></div></div>')
     side_status = st.empty()
     md('<div class="sb-h">Design steps</div>')
     try:
@@ -2039,10 +2217,10 @@ def flow_svg(d):
     npass = len(pl)
     cp = chemical_program(d)
     crow = {r["name"]: r for r in cp["rows"]}
-    MY, INK = 290, "#0F2233"
+    MY, INK = 300, "#0F2233"
     pipes, eq = [], []
-    PIPE = {"feed": ("#17497F", "#3F93E0", "#C4E3FF", 9), "perm": ("#09697A", "#4FCBDD", "#DAF8FC", 9),
-            "conc": ("#8A3B0C", "#E8883A", "#FFD6AE", 9), "chem": ("#4C2070", "#9A63C9", "#E6D2F7", 5)}
+    PIPE = {"feed": ("#1F4FD8", 3.6), "perm": ("#14935F", 3.6), "conc": ("#B04A12", 3.6), "chem": ("#7B3FE4", 2.8)}   # flat lines like a block-flow diagram
+    CHEMCOL = {"NaOCl": "#B8860B", "SMBS": "#7B3FE4", "Antiscalant": "#0E7FA8"}
 
     def cyl(i, dark, light, mid):
         return (f'<linearGradient id="{i}" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="{dark}"/><stop offset=".28" stop-color="{light}"/>'
@@ -2071,19 +2249,16 @@ def flow_svg(d):
     def txt(x, y, s, size=13, anchor="middle", weight=400, fill=INK):
         return f'<text x="{x:.1f}" y="{y:.1f}" text-anchor="{anchor}" font-size="{size}" font-weight="{weight}" fill="{fill}">{hesc(str(s))}</text>'
 
-    def pipe(x1, y1, x2, y2, kind="feed", w=None, dash=False):
-        dark, mid, light, w0 = PIPE[kind]
-        w = w or w0
-        da = ' stroke-dasharray="9 6"' if dash else ""
-        ox, oy = (0, -w * 0.2) if abs(y1 - y2) < 0.01 else (-w * 0.2, 0)
-        pipes.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{dark}" stroke-width="{w + 3}"{da}/>'
-                     f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{mid}" stroke-width="{w - 0.5}"{da}/>'
-                     f'<line x1="{x1 + ox:.1f}" y1="{y1 + oy:.1f}" x2="{x2 + ox:.1f}" y2="{y2 + oy:.1f}" stroke="{light}" stroke-width="{max(1.4, w * 0.28):.1f}" stroke-opacity=".9"{da}/>')
+    def pipe(x1, y1, x2, y2, kind="feed", w=None, dash=False, color=None):
+        col, w0 = PIPE[kind]
+        da = ' stroke-dasharray="8 5"' if dash else ""
+        pipes.append(f'<line x1="{x1:.1f}" y1="{y1:.1f}" x2="{x2:.1f}" y2="{y2:.1f}" stroke="{color or col}" stroke-width="{w or w0}" stroke-linejoin="round"{da}/>')
 
-    def arrowhead(x, y, dirn, kind):
-        dark, mid = PIPE[kind][0], PIPE[kind][1]
-        pts = {"r": f"{x},{y} {x - 14},{y - 9} {x - 14},{y + 9}", "d": f"{x},{y} {x - 9},{y - 14} {x + 9},{y - 14}", "u": f"{x},{y} {x - 9},{y + 14} {x + 9},{y + 14}"}[dirn]
-        eq.append(f'<polygon points="{pts}" fill="{mid}" stroke="{dark}" stroke-width="1.5"/>')
+    def arrowhead(x, y, dirn, kind, color=None):
+        col = color or PIPE[kind][0]
+        pts = {"r": f"{x},{y} {x - 13},{y - 6.5} {x - 13},{y + 6.5}", "d": f"{x},{y} {x - 6.5},{y - 13} {x + 6.5},{y - 13}",
+               "u": f"{x},{y} {x - 6.5},{y + 13} {x + 6.5},{y + 13}"}[dirn]
+        eq.append(f'<polygon points="{pts}" fill="{col}"/>')
 
     def tank(x, y, w, h, cy_id, top_id, stroke):
         ry = 10
@@ -2106,32 +2281,34 @@ def flow_svg(d):
                   f'<circle cx="{cx}" cy="{MY - 31}" r="9.5" fill="url(#sphW)" stroke="{INK}" stroke-width="1.8" filter="url(#sh)"/>'
                   f'<line x1="{cx}" y1="{MY - 31}" x2="{cx + 5}" y2="{MY - 36}" stroke="#C62828" stroke-width="1.8"/>')
         if label:
-            eq.append(txt(cx, MY - 48, label, 13, weight=700))
+            eq.append(txt(cx, MY - 48, label, 15, weight=700))
 
     def chem_tank(x, name, row, alt="", formula="", below=False):
         dose = row["dose"] if row else 0.0
         active = dose > 0
         if below:                                   # tank under the line, dosing pump between tank and line, arrow pointing up
             ty, py = MY + 126, MY + 98
-            pipe(x, MY + 6, x, ty + 4, "chem")
-            arrowhead(x, MY + 3, "u", "chem")
+            pipe(x, MY + 6, x, ty + 4, "chem", color=CHEMCOL.get(name, "#C2571A"))
+            arrowhead(x, MY + 3, "u", "chem", CHEMCOL.get(name, "#C2571A"))
         else:                                       # tank above the line, arrow pointing down
-            ty, py = 12, 120
-            pipe(x, 96, x, MY - 6, "chem")
-            arrowhead(x, MY - 3, "d", "chem")
+            ty, py = 8, 128
+            pipe(x, ty + 108, x, MY - 6, "chem", color=CHEMCOL.get(name, "#C2571A"))
+            arrowhead(x, MY - 3, "d", "chem", CHEMCOL.get(name, "#C2571A"))
         eq.append(f'<g opacity="{1 if active else 0.55}">')
-        tank(x - 44, ty, 88, 84, "cPurple", "tPurple", "#5E2A86")
-        y1 = ty + (26 if formula else 32)
-        eq.append(txt(x, y1, name, 13, weight=800, fill="#2E1247"))
-        if formula:
-            eq.append(txt(x, y1 + 14, formula, 12, weight=700, fill="#2E1247"))
-        eq.append(txt(x, y1 + 17 + (13 if formula else 0), f"{dose:.2f} mg/L" if active else "not dosed", 12, weight=600, fill="#1F1030"))
-        eq.append(txt(x, y1 + 33 + (13 if formula else 0), f"{row['l_h']:.2f} L/h" if (active and row) else alt, 12, weight=600, fill="#1F1030"))
+        tank(x - 50, ty, 100, 108, "cPurple", "tPurple", "#5E2A86")
+        lines = [(name, 14, 800)] + ([(formula, 13, 700)] if formula else [])
+        if active:
+            lines += [(f"{dose:.2f} mg/L", 13, 600), (f"{row['l_h']:.2f} L/h", 13, 600), (f"{row['l_day']:.0f} L/day", 13, 600)]
+        else:
+            lines.append(("not dosed", 13, 600))
+        y1, step = ty + (26 if formula else 32), (16 if formula else 17)
+        for li, (t_, sz_, w_) in enumerate(lines):
+            eq.append(txt(x, y1 + li * step, t_, sz_, weight=w_, fill="#2E1247" if li == 0 else "#1F1030"))
         eq.append(f'<circle cx="{x}" cy="{py}" r="12" fill="url(#sphP)" stroke="#4C2070" stroke-width="1.8" filter="url(#sh)"/>'
                   f'<polygon points="{x - 4.5},{py - 7} {x - 4.5},{py + 7} {x + 7.5},{py}" fill="#2E1247"/></g>')
 
     # ---------------- geometry ----------------
-    BW, GAP, BX1 = 176, 138, 856
+    BW, GAP, BX1 = 210, 165, 856
     PITCH = BW + GAP
     bxs = [BX1 + PITCH * i for i in range(npass)]
     post = [r for r in cp["rows"] if "post-treatment" in r["name"] and r["dose"] > 0]
@@ -2141,39 +2318,49 @@ def flow_svg(d):
     tagx = E + 100
     chem1 = d["adj1"]["chem"]
     row_ph = crow.get(f"{chem1} (pass 1 pH)") if chem1 not in ("None", None, "") else None
-    hmax = max(42 + len(e["calc"]["rows"]) * 48 + 40 for e in pl)
+    hmax = max(42 + len(e["calc"]["rows"]) * 48 + 56 for e in pl)
 
     # ---------------- upstream ----------------
     pipe(72, MY, 88, MY, "feed")
     pipe(200, MY, 220, MY, "feed")
     pipe(248, MY, 284, MY, "feed")
     pipe(324, MY, 738, MY, "feed")
+    for _ax in (88, 220, 284, 738):
+        arrowhead(_ax, MY, "r", "feed")
     pipe(774, MY, bxs[0], MY, "feed")
     arrowhead(bxs[0], MY, "r", "feed")
     ux, uw, uy, uh, ud = 8, 56, MY - 36, 72, 10
     eq.append(f'<g filter="url(#sh)"><polygon points="{ux},{uy} {ux + ud},{uy - ud} {ux + uw + ud},{uy - ud} {ux + uw},{uy}" fill="#D3EEF8" stroke="#0E7FA8" stroke-width="1.6"/>'
               f'<polygon points="{ux + uw},{uy} {ux + uw + ud},{uy - ud} {ux + uw + ud},{uy + uh - ud} {ux + uw},{uy + uh}" fill="#4F9DB8" stroke="#0E7FA8" stroke-width="1.6"/>'
               f'<rect x="{ux}" y="{uy}" width="{uw}" height="{uh}" fill="url(#vUF)" stroke="#0E7FA8" stroke-width="1.8"/></g>')
-    eq.append(txt(ux + uw / 2, MY - 1, "UF", 19, weight=800) + txt(ux + uw / 2, MY + 17, "system", 12.5, weight=600))
+    eq.append(txt(ux + uw / 2, MY - 1, "UF", 19, weight=800) + txt(ux + uw / 2, MY + 17, "system", 14, weight=600)
+              + txt(ux + uw / 2, MY + 56, "UF-101", 14, weight=700, fill="#0A2A4A") + txt(ux + uw / 2, MY + 71, f"{d['raw'] * k:.1f} {fu}", 14, weight=600, fill="#1F3F5C"))
     tank(88, MY - 76, 112, 152, "cBlue", "tBlue", "#1F5FA6")
-    eq.append(txt(144, MY - 26, "SERVICE", 13, weight=800, fill="#0A2A4A") + txt(144, MY - 10, "WATER TANK", 13, weight=800, fill="#0A2A4A")
-              + txt(144, MY + 9, "(UF filtrate)", 12, fill="#0A2A4A") + txt(144, MY + 27, f"{d['raw'] * k:.1f} {fu}", 13, weight=800, fill="#0A2A4A"))
+    eq.append(txt(144, MY - 26, "SERVICE", 15, weight=800, fill="#0A2A4A") + txt(144, MY - 10, "WATER TANK", 15, weight=800, fill="#0A2A4A")
+              + txt(144, MY + 9, "(UF filtrate)", 14, fill="#0A2A4A") + txt(144, MY + 27, f"{d['raw'] * k:.1f} {fu}", 15, weight=800, fill="#0A2A4A")
+              + txt(144, MY + 44, f"Vol ~ {d['raw'] * 0.25:.1f} m³", 14, fill="#0A2A4A") + txt(144, MY - 52, "T-101", 14, weight=700, fill="#0A2A4A"))
     pump(234, MY)
-    eq.append(txt(234, MY + 38, "Supply pump", 13, weight=700))
+    eq.append(txt(234, MY + 38, "Supply pump", 15, weight=700) + txt(234, MY + 53, "P-101", 14, weight=700, fill="#1F3F5C")
+              + txt(234, MY + 67, f"{d['raw'] * k:.1f} {fu}", 14, weight=600, fill="#1F3F5C"))
     gauge(266, "")
     eq.append('<g filter="url(#sh)">'
               f'<ellipse cx="304" cy="{MY + 38}" rx="20" ry="8" fill="url(#cGrey)" stroke="{INK}" stroke-width="1.6"/>'
               f'<rect x="284" y="{MY - 38}" width="40" height="76" fill="url(#cGrey)"/><line x1="284" y1="{MY - 38}" x2="284" y2="{MY + 38}" stroke="{INK}" stroke-width="1.6"/>'
               f'<line x1="324" y1="{MY - 38}" x2="324" y2="{MY + 38}" stroke="{INK}" stroke-width="1.6"/>'
               f'<ellipse cx="304" cy="{MY - 38}" rx="20" ry="8" fill="url(#tGrey)" stroke="{INK}" stroke-width="1.6"/></g>')
-    eq.append(txt(304, MY + 64, "Cartridge filter", 13, weight=700) + txt(304, MY + 80, "5 µm", 12))
+    eq.append(txt(304, MY + 78, "Cartridge filter", 15, weight=700) + txt(304, MY + 93, "F-101 - 5 µm", 14, weight=600, fill="#1F3F5C")
+              + txt(304, MY + 108, f"{d['raw'] * k:.1f} {fu}", 14, weight=600, fill="#1F3F5C"))
     gauge(346, "")
     chem_tank(425, "NaOCl", crow.get("NaOCl"))                                                                  # above
     chem_tank(490, "SMBS", crow.get("SMBS (Na2S2O5)"), formula="Na₂S₂O₅", below=True)                          # below
     chem_tank(570, chem1 if chem1 not in ("None", None, "") else "NaOH/acid", row_ph)                          # above
     chem_tank(635, "Antiscalant", crow.get("Antiscalant"), below=True)                                         # below
     pump(756, MY, r=18)
-    eq.append(txt(756, MY + 42, "RO feed pump", 13, weight=700))
+    _c1 = pl[0]["calc"]
+    eq.append(txt(756, MY + 42, "RO feed pump", 15, weight=700) + txt(756, MY + 58, "P-102", 14, weight=700, fill="#1F3F5C")
+              + txt(756, MY + 73, f"{_c1['f_m3h'] * k:.1f} {fu}", 14, weight=600, fill="#1F3F5C")
+              + txt(756, MY + 88, f"{_c1['pf'] * pk:.0f} {pu}", 14, weight=600, fill="#1F3F5C")
+              + txt(756, MY + 103, f"{_c1['kw']:.1f} kW", 14, weight=700, fill="#7A2E00"))
 
     # ---------------- passes ----------------
     drops = []
@@ -2181,10 +2368,10 @@ def flow_svg(d):
         n, c, mem = e["n"], e["calc"], e["mem"]
         bx = bxs[i]
         ns = len(c["rows"])
-        hn = 42 + ns * 48 + 40
+        hn = 42 + ns * 48 + 56
         y0 = MY - hn / 2
         eq.append(f'<rect x="{bx}" y="{y0}" width="{BW}" height="{hn}" rx="10" fill="url(#vBox)" stroke="#2D7FD3" stroke-width="2.6" filter="url(#sh)"/>')
-        eq.append(txt(bx + BW / 2, y0 + 19, f"PASS {n}", 16, weight=800) + txt(bx + BW / 2, y0 + 35, mem["model"], 12.5, fill="#1F3F5C", weight=600))
+        eq.append(txt(bx + BW / 2, y0 + 19, f"PASS {n}  (RO-{n}01)", 15, weight=800) + txt(bx + BW / 2, y0 + 35, mem["model"], 12.5, fill="#1F3F5C", weight=600))
         last_c = y0 + 42 + (ns - 1) * 48 + 20
         eq.append(f'<line x1="{bx + 5}" y1="{y0 + 62}" x2="{bx + 5}" y2="{last_c}" stroke="#2D7FD3" stroke-width="4"/>'
                   f'<line x1="{bx + BW - 5}" y1="{y0 + 62}" x2="{bx + BW - 5}" y2="{last_c}" stroke="#0B7F91" stroke-width="4"/>')
@@ -2194,19 +2381,26 @@ def flow_svg(d):
                       f'<line x1="{bx + BW - 11}" y1="{sy + 20}" x2="{bx + BW - 5}" y2="{sy + 20}" stroke="#0B7F91" stroke-width="4"/>'
                       f'<rect x="{bx + 11}" y="{sy}" width="{BW - 22}" height="40" rx="20" fill="url(#vOrange)" stroke="#8A4A12" stroke-width="1.8" filter="url(#sh)"/>'
                       f'<rect x="{bx + 30}" y="{sy + 3}" width="{BW - 60}" height="8" rx="4" fill="#FFFFFF" opacity=".4"/>')
-            eq.append(txt(bx + BW / 2, sy + 18, f"Stage {r['stage']}", 13.5, weight=800, fill="#3A1C04") + txt(bx + BW / 2, sy + 33, f"{r['vessels']} vessels x {r['elements']} el", 12, weight=600, fill="#3A1C04"))
-        eq.append(txt(bx + BW / 2, y0 + hn - 22, f"flux {c['flux']:.1f} gfd - rec {c['y'] * 100:.0f} %", 13, weight=800, fill="#154E78")
-                  + txt(bx + BW / 2, y0 + hn - 6, f"{c['n_el']} el - {c['area']:,.0f} ft²", 12, weight=600, fill="#1F3F5C"))
+            eq.append(txt(bx + BW / 2, sy + 18, f"Stage {r['stage']}", 13.5, weight=800, fill="#3A1C04") + txt(bx + BW / 2, sy + 33, f"{r['vessels']} vessels x {r['elements']} el", 14, weight=600, fill="#3A1C04"))
+        eq.append(txt(bx + BW / 2, y0 + hn - 38, f"flux {c['flux']:.1f} gfd - rec {c['y'] * 100:.0f} %", 15, weight=800, fill="#154E78")
+                  + txt(bx + BW / 2, y0 + hn - 22, f"{c['n_el']} el - {c['area']:,.0f} ft²", 14, weight=600, fill="#1F3F5C")
+                  + txt(bx + BW / 2, y0 + hn - 6, f"NDP {c['ndp'] * pk:.0f} - dP {c['dp_total'] * pk:.1f} {pu}", 14, weight=600, fill="#1F3F5C"))
         pipe(bx + BW, MY, (bxs[i + 1] - 66 - 14) if i + 1 < npass else xt, MY, "perm")
+        if i + 1 < npass:
+            arrowhead(bxs[i + 1] - 66 - 14, MY, "r", "perm")
         gauge(bx - 28, f"{c['pf'] * pk:.0f} {pu}")
-        eq.append(txt(bx - 28, MY + 20, f"feed {c['f_m3h'] * k:.1f}", 12, weight=600, fill="#1F3F5C"))
+        eq.append(txt(bx - 28, MY + 20, f"feed {c['f_m3h'] * k:.1f}", 14, weight=600, fill="#1F3F5C"))
         if i + 1 < npass:
             nxt = bxs[i + 1]
             px = nxt - 66
             pipe(px + 14, MY, nxt, MY, "perm")
             arrowhead(nxt, MY, "r", "perm")
             pump(px, MY)
-            eq.append(txt(px, MY + 42, f"Pass {n + 1} feed pump", 13, weight=700))
+            _cn = pl[i + 1]["calc"]
+            eq.append(txt(px, MY + 42, f"Pass {n + 1} feed pump", 15, weight=700) + txt(px, MY + 58, f"P-{n + 1}01", 14, weight=700, fill="#1F3F5C")
+                      + txt(px, MY + 73, f"{_cn['f_m3h'] * k:.1f} {fu}", 14, weight=600, fill="#1F3F5C")
+                      + txt(px, MY + 88, f"{_cn['pf'] * pk:.0f} {pu}", 14, weight=600, fill="#1F3F5C")
+                      + txt(px, MY + 103, f"{_cn['kw']:.1f} kW", 14, weight=700, fill="#7A2E00"))
             eq.append(txt(bx + BW + 8, MY + 24, f"{c['p_m3h'] * k:.1f} {fu}", 13, anchor="start", weight=800, fill="#07505E"))
             nadj = pl[i + 1]["adj"]
             if nadj["chem"] not in ("None", None, ""):
@@ -2219,12 +2413,14 @@ def flow_svg(d):
     arrowhead(xt, MY, "r", "perm")
     fx, ax = xt - 44, xt - 100
     eq.append(f'<rect x="{fx - 17}" y="{MY - 11}" width="34" height="22" rx="3" fill="url(#vTag)" stroke="{INK}" stroke-width="1.6" filter="url(#sh)"/>' + txt(fx, MY + 5, "FT", 12.5, weight=800)
-              + txt(fx, MY - 18, f"{d['q'] * k:.1f} {fu}", 13, weight=800, fill="#07505E"))
+              + txt(fx, MY - 18, f"{d['q'] * k:.1f} {fu}", 15, weight=800, fill="#07505E"))
     eq.append(f'<rect x="{ax - 19}" y="{MY - 11}" width="38" height="22" rx="3" fill="url(#vTag)" stroke="{INK}" stroke-width="1.6" filter="url(#sh)"/>' + txt(ax, MY + 5, "AIT", 12.5, weight=800)
-              + txt(ax, MY + 30, f"{comp_cond(d['product']):.1f} µS/cm", 12, weight=600, fill="#1F3F5C"))
+              + txt(ax, MY + 30, f"{comp_cond(d['product']):.1f} µS/cm", 14, weight=600, fill="#1F3F5C"))
     tank(xt, MY - 76, 124, 152, "cGreen", "tGreen", "#1B8F5A")
-    eq.append(txt(xt + 62, MY - 30, "FINAL RO", 13, weight=800, fill="#0C3320") + txt(xt + 62, MY - 14, "PRODUCT TANK", 13, weight=800, fill="#0C3320")
-              + txt(xt + 62, MY + 8, f"{d['q'] * k:.1f} {fu}", 13, weight=800, fill="#0C3320") + txt(xt + 62, MY + 25, f"TDS {d['tds_product']:.1f} mg/L", 12, weight=600, fill="#0C3320"))
+    eq.append(txt(xt + 62, MY - 30, "FINAL RO", 15, weight=800, fill="#0C3320") + txt(xt + 62, MY - 14, "PRODUCT TANK", 15, weight=800, fill="#0C3320")
+              + txt(xt + 62, MY + 8, f"{d['q'] * k:.1f} {fu}", 15, weight=800, fill="#0C3320") + txt(xt + 62, MY + 25, f"TDS {d['tds_product']:.1f} mg/L", 14, weight=600, fill="#0C3320")
+              + txt(xt + 62, MY + 41, f"pH {d['product_ph']:.2f}", 14, weight=600, fill="#0C3320") + txt(xt + 62, MY + 57, f"Vol ~ {d['q'] * 0.5:.1f} m³", 14, weight=600, fill="#0C3320")
+              + txt(xt + 62, MY - 52, "T-201", 14, weight=700, fill="#0C3320"))
     pipe(xt + 124, MY, xt + 192, MY, "perm")
     arrowhead(xt + 192, MY, "r", "perm")
     eq.append(txt(xt + 158, MY - 16, "To users", 14, weight=800, fill="#0C3320"))
@@ -2237,18 +2433,19 @@ def flow_svg(d):
         rows = []
         if n == npass:
             rows.append((f"PASS {n} PERMEATE  {c['p_m3h'] * k:.1f} {fu}", "perm", "RO PRODUCT WATER STORAGE TANK", False))
-        rows.append((f"PASS {n} PERMEATE - OFF-SPEC", "perm", "DRAIN", False))
-        rows.append((f"PASS {n} PERMEATE - CIP", "perm", "CLEAN-IN-PLACE SKID", False))
-        rows.append((f"PASS {n} CONCENTRATE - CIP", "conc", "CLEAN-IN-PLACE SKID", False))
+        rows.append((f"PASS {n} PERMEATE - OFF-SPEC", "perm", "DRAIN", True))
+        rows.append((f"PASS {n} PERMEATE - CIP", "perm", "CLEAN-IN-PLACE SKID", True))
+        rows.append((f"PASS {n} CONCENTRATE - CIP", "conc", "CLEAN-IN-PLACE SKID", True))
         if d["recycle"] and n >= 2:
             rows.append((f"PASS {n} CONC. RECYCLE  {c['c_m3h'] * k:.1f} {fu}", "conc", "RECYCLE TO PASS 1 FEED", True))
         else:
             rows.append((f"PASS {n} CONCENTRATE  {c['c_m3h'] * k:.1f} {fu}", "conc", "DRAIN", False))
         for ri, (label, kind, tag, dash) in enumerate(rows):
             vx = bx + 16 + 13 * (len(rows) - 1 - ri)
-            pipe(vx, ybot, vx, cur, kind, w=4, dash=dash)
-            pipe(vx, cur, tagx, cur, kind, w=4, dash=dash)
-            eq.append(txt(vx + 8, cur - 7, label, 12.5, anchor="start", weight=700))
+            pipe(vx, ybot, vx, cur, kind, w=2.8, dash=dash)
+            pipe(vx, cur, tagx - 6, cur, kind, w=2.8, dash=dash)
+            arrowhead(tagx, cur, "r", kind)
+            eq.append(txt(vx + 8, cur - 7, label, 14, anchor="start", weight=700))
             tags.append((cur, tag))
             cur += 29
         cur += 10
@@ -2256,103 +2453,250 @@ def flow_svg(d):
         eq.append(f'<polygon points="{tagx},{y - 12} {tagx + TAGW - 13},{y - 12} {tagx + TAGW},{y} {tagx + TAGW - 13},{y + 12} {tagx},{y + 12}" fill="url(#vTag)" stroke="{INK}" stroke-width="1.5" filter="url(#sh)"/>'
                   + txt(tagx + (TAGW - 8) / 2, y + 4.5, tag, 11.5, weight=800))
     ly = MY + 125
-    for j, (kind, label) in enumerate((("feed", "Service water / RO feed"), ("perm", "Permeate"), ("conc", "Concentrate / reject"), ("chem", "Chemical dosing"))):
-        yy = ly + 24 * j
-        eq.append(f'<line x1="14" y1="{yy}" x2="50" y2="{yy}" stroke="{PIPE[kind][0]}" stroke-width="9"/><line x1="14" y1="{yy}" x2="50" y2="{yy}" stroke="{PIPE[kind][1]}" stroke-width="6.5"/>'
-                  f'<line x1="14" y1="{yy - 1.8}" x2="50" y2="{yy - 1.8}" stroke="{PIPE[kind][2]}" stroke-width="1.8"/>' + txt(60, yy + 4.5, label, 13, anchor="start", weight=600))
+    leg = [("feed", None, False, "Service water / RO feed"), ("perm", None, False, "Permeate / product"), ("conc", None, False, "Concentrate / reject"),
+           ("perm", None, True, "Off-spec / CIP / recycle (dashed)"), ("chem", CHEMCOL["NaOCl"], False, "NaOCl"), ("chem", "#C2571A", False, "NaOH / acid"),
+           ("chem", CHEMCOL["SMBS"], False, "SMBS (Na₂S₂O₅)"), ("chem", CHEMCOL["Antiscalant"], False, "Antiscalant")]
+    for j, (kind, colr, dsh, label) in enumerate(leg):
+        yy = ly + 22 * j
+        c_ = colr or PIPE[kind][0]
+        eq.append(f'<line x1="14" y1="{yy}" x2="44" y2="{yy}" stroke="{c_}" stroke-width="{PIPE[kind][1]}"' + (' stroke-dasharray="7 4"' if dsh else "") + "/>"
+                  f'<polygon points="52,{yy} 40,{yy - 6} 40,{yy + 6}" fill="{c_}"/>' + txt(62, yy + 4.5, label, 13, anchor="start", weight=600))
+    leg_end = ly + 22 * len(leg)
 
-    W = max(tagx + TAGW, xt + 200) + 24
-    H = max(cur + 14, ly + 110, MY + 230)
+    W = max(tagx + TAGW, xt + 200, 1700) + 24
+
+    # ---------------- equipment schedule (tag, flow, pressure, power, parameters) ----------------
+    def f_(m3h):
+        return f"{m3h * k:.1f} {fu}"
+    ep_, em_, ev_ = _f("eff_pump", 87.0), _f("eff_motor", 95.0), _f("eff_vfd", 97.0)
+    erows = [("UF-101", "UF system", f_(d["raw"]), "-", "-", "Ultrafiltration filtrate to the service water tank"),
+             ("T-101", "Service water tank", f_(d["raw"]), "atm", "-", f"Indicative buffer volume {d['raw'] * 0.25:.1f} m³ (15 min of RO feed)"),
+             ("P-101", "Supply pump", f_(d["raw"]), "-", "-", "Service water to the cartridge filter and RO skid"),
+             ("F-101", "Cartridge filter", f_(d["raw"]), "-", "-", "5 µm nominal rating")]
+    dos = [("NaOCl", crow.get("NaOCl")), ("SMBS (Na₂S₂O₅)", crow.get("SMBS (Na2S2O5)")),
+           (f"{chem1} (pass 1 pH)" if chem1 not in ("None", None, "") else "NaOH / acid (pass 1 pH)", row_ph), ("Antiscalant", crow.get("Antiscalant"))]
+    for e_ in pl[1:]:
+        if e_["adj"]["chem"] not in ("None", None, ""):
+            dos.append((f"{e_['adj']['chem']} (pass {e_['n']} pH)", crow.get(f"{e_['adj']['chem']} (pass {e_['n']} pH)")))
+    dos += [(r_["name"], r_) for r_ in post]
+    for di, (nm, r_) in enumerate(dos):
+        if r_ and r_["dose"] > 0:
+            det = (f"{r_['dose']:.2f} mg/L (100 %) - {r_['kg_h']:.3f} kg/h - {r_['l_day']:.0f} L/day day tank - "
+                   f"{r_['conc']:.0f} % solution, SG {r_['sg']:.2f} - dosed at: {r_['point']}")
+            erows.append((f"D-{101 + di}", f"Dosing pump - {nm}", f"{r_['l_h']:.2f} L/h", "-", "-", det))
+        else:
+            erows.append((f"D-{101 + di}", f"Dosing pump - {nm}", "-", "-", "-", "not dosed"))
+    for e_ in pl:
+        c_, n_ = e_["calc"], e_["n"]
+        eff_txt = f"{c_['bhp']:.1f} BHP - pump {ep_:.0f} % x motor {em_:.0f} % x VFD {ev_:.0f} %"
+        erows.append(("P-102" if n_ == 1 else f"P-{n_}01", "RO feed pump (high pressure)" if n_ == 1 else f"Pass {n_} feed pump", f_(c_["f_m3h"]),
+                      f"{c_['pf'] * pk:.1f} {pu}", f"{c_['kw']:.1f} kW", eff_txt))
+        stg = " / ".join(f"{r_['vessels']}x{r_['elements']}" for r_ in c_["rows"])
+        erows.append((f"RO-{n_}01", f"RO pass {n_} - {e_['mem']['model']}", f"{c_['f_m3h'] * k:.1f} -> {c_['p_m3h'] * k:.1f} {fu}", f"{c_['pf'] * pk:.1f} {pu}", "-",
+                      f"{c_['n_vessels']} vessels, {c_['n_el']} el ({stg}) - {c_['area']:,.0f} ft² - flux {c_['flux']:.1f} gfd - rec {c_['y'] * 100:.0f} % - "
+                      f"NDP {c_['ndp'] * pk:.0f} {pu} - dP {c_['dp_total'] * pk:.1f} {pu}"))
+    erows.append(("T-201", "Final RO product tank", f_(d["q"]), "atm", "-",
+                  f"TDS {d['tds_product']:.1f} mg/L - pH {d['product_ph']:.2f} - {comp_cond(d['product']):.1f} µS/cm - indicative volume {d['q'] * 0.5:.1f} m³ (30 min of product)"))
+    tx0, cws = 14, [78, 300, 215, 120, 100]
+    cxs = [tx0]
+    for w_ in cws:
+        cxs.append(cxs[-1] + w_)
+    FS = 15                                                    # schedule font size
+    tty = max(cur + 16, MY + 250, leg_end + 10)
+    eq.append(txt(tx0, tty - 8, "EQUIPMENT SCHEDULE", 18, anchor="start", weight=800))
+    eq.append(f'<rect x="{tx0}" y="{tty}" width="{W - 2 * tx0}" height="32" rx="4" fill="#1D6397"/>')
+    for ci, h_ in enumerate(["Tag", "Equipment", "Flow", "Pressure", "Power", "Parameters"]):
+        eq.append(txt(cxs[ci] + 8, tty + 22, h_, 16, anchor="start", weight=800, fill="#FFFFFF"))
+    import textwrap
+    chars = max(30, int((W - cxs[5] - 24) / (FS * 0.54)))      # characters that fit in the Parameters column
+    yy = tty + 32
+    for ri, row_ in enumerate(erows):
+        lines_ = textwrap.wrap(str(row_[5]), chars) or [""]
+        rh = max(32, 21 * len(lines_) + 11)
+        eq.append(f'<rect x="{tx0}" y="{yy}" width="{W - 2 * tx0}" height="{rh}" fill="{"#FFFFFF" if ri % 2 == 0 else "#E6F0FA"}" stroke="#B9CFE4" stroke-width=".6"/>')
+        for ci, v_ in enumerate(row_[:5]):
+            eq.append(txt(cxs[ci] + 8, yy + rh / 2 + 5, v_, FS, anchor="start", weight=800 if ci == 0 else 600))
+        for li_, ln_ in enumerate(lines_):
+            eq.append(txt(cxs[5] + 8, yy + 21 + li_ * 21, ln_, FS, anchor="start", weight=500))
+        yy += rh
+    yend = yy
+    eq.append(txt(tx0, yend + 22, "Tank volumes are indicative buffer volumes (service water 15 min of RO feed, product 30 min) - confirm in the detailed design. "
+                  "Pump power = flow x pressure / (1714 x pump x motor x VFD efficiency).", 14, anchor="start", fill="#1F3F5C"))
+    H = yend + 42
     svg = (f'<svg viewBox="0 0 {W} {H}" width="100%" xmlns="http://www.w3.org/2000/svg" style="display:block;height:auto;margin:0 auto;" preserveAspectRatio="xMidYMin meet">{defs}'
            f'<rect x="1" y="1" width="{W - 2}" height="{H - 2}" rx="12" fill="url(#vBg)" stroke="#2A2F36" stroke-width="2"/>' + "".join(pipes) + "".join(eq) + "</svg>")
     html = ("<html><head><meta charset=\"utf-8\"></head><body style=\"margin:0;overflow:hidden;background:transparent;font-family:'Segoe UI',Arial,sans-serif;\">"
             f'<div id="wrap">{svg}</div>'
             "<script>function fit(){try{var h=document.getElementById('wrap').getBoundingClientRect().height;"
             "window.frameElement.style.height=(h+4)+'px';}catch(e){}}"
-            "window.addEventListener('load',fit);window.addEventListener('resize',fit);setTimeout(fit,250);setTimeout(fit,900);</script></body></html>")
-    return html, int(H * min(1.0, 850 / W)) + 12
+            "window.addEventListener('load',fit);window.addEventListener('resize',fit);"
+            "try{new ResizeObserver(fit).observe(document.getElementById('wrap'));}catch(e){}"
+            "setTimeout(fit,100);setTimeout(fit,400);setTimeout(fit,1200);</script></body></html>")
+    return html, int(H * min(1.0, 1000 / W)) + 12
 
 
 def view_design():
     page_title("📈 RO Design")
-    lib = load_library()
-    with card("System", "⚙️"):
-        c = st.columns([1.2, 1, 1.3, 1, 1])
-        with c[0]:
-            w_unit_number(f"Plant product flow ({ss.get('flow_unit', 'm³/h')})", "product_flow", 37.5, "flow_unit", FLOW_UNITS, min_value=0.1, format="%.2f")
-        with c[1]:
-            w_select("Flow unit", ["m³/h", "gpm"], "flow_unit", "m³/h")
-        with c[2]:
-            npass = int(w_radio("RO passes", list(range(1, MAX_PASSES + 1)), "passes", 1, horizontal=True))
-        with c[3]:
-            w_number("Target product TDS (mg/L)", "target_tds", 10.0, min_value=0.0)
-        with c[4]:
-            w_select("Pressure unit", ["psi", "bar"], "pressure_unit", "psi")
-        c = st.columns([1, 1.4, 1])
-        with c[0]:
-            w_number("Permeate back-pressure (psi)", "perm_pressure", 0.0, min_value=0.0)
-        with c[1]:
+    flow_slot = st.container()      # flow diagram is drawn here, at the TOP of the page, once the design is calculated
+    npass = int(min(max(_f("passes", 1), 1), MAX_PASSES))
+    kf = GPM if ss.get("flow_unit", "m³/h") == "gpm" else 1.0
+    fun = "gpm" if kf != 1.0 else "m³/h"
+    fills = []                                   # (placeholder, kind, pass) - calculated cells are filled after the design is computed
+
+    def cell(kind, n):
+        fills.append((st.empty(), kind, n))
+
+    def rl(text):
+        return f'<div class="rl">{hesc(text)}</div>'
+
+    # ---------------- Train information (left) + System (right) ----------------
+    top = st.columns([3.1, 1.25])
+    with top[0]:
+        with card("Train Information", "🚂"):
+            left = [("Feed pH", "ph", None), ("Permeate recovery (%)", "in", "rec"), (f"Permeate flow ({fun})", "calc", "pflow"),
+                    ("Average flux (gfd)", "calc", "flux"), (f"Feed flow ({fun})", "calc", "fflow"), (f"Concentrate flow ({fun})", "calc", "cflow"),
+                    (f"Circ. flow to pass 1 ({fun})", "calc", "circ")]
+            right = [("Chemical", "chem", None), ("Chemical dose (mg/L)", "calc", "dose"), ("Membrane age (years)", "in", "age"),
+                     ("Flux decline (%/yr)", "in", "decl"), ("Fouling factor", "calc", "ff"), ("Salt passage incr. (%/yr)", "in", "sp")]
+            in_kw = {"rec": dict(min_value=1.0, max_value=99.0), "age": dict(min_value=0.0), "decl": dict(min_value=0.0, max_value=50.0),
+                     "sp": dict(min_value=0.0)}
+            raw_ph = _f("ph", 7.0)
+
+            def block(rows):
+                widths = [2.4] + [1] * npass
+                h = st.columns(widths)
+                for n in range(1, npass + 1):
+                    h[n].markdown(f'<span class="lhead">Pass {n}</span>', unsafe_allow_html=True)
+                for label, kind, arg in rows:
+                    c = st.columns(widths)
+                    c[0].markdown(rl(label), unsafe_allow_html=True)
+                    for n in range(1, npass + 1):
+                        if arg == "circ" and n > 1:
+                            continue
+                        with c[n]:
+                            if kind == "in":
+                                key = f"p{n}_rec" if arg == "rec" else f"{arg}{n}"
+                                w_number(label, key, pass_default(n, arg), label_visibility="collapsed", **in_kw[arg])
+                            elif kind == "calc":
+                                cell(arg, n)
+                            elif kind == "chem":
+                                opts = ["None", "H2SO4", "HCl", "NaOH"] if n == 1 else (["NaOH", "None", "H2SO4", "HCl"] if n == 2 else ["None", "NaOH", "H2SO4", "HCl"])
+                                w_select(f"Chemical pass {n}", opts, f"p{n}_chem", "NaOH" if n == 2 else "None", label_visibility="collapsed")
+                            elif kind == "ph":
+                                chem_n = ss.get(f"p{n}_chem", "NaOH" if n == 2 else "None")
+                                if chem_n in ("None", None, ""):
+                                    cell("ph", n)
+                                else:
+                                    w_number(f"Feed pH pass {n}", f"p{n}_ph", raw_ph if n == 1 else 8.2, min_value=2.0 if n == 1 else 6.0,
+                                             max_value=12.0 if n == 1 else 11.0, step=0.1, format="%.2f", label_visibility="collapsed")
+
+            if npass <= 2:
+                cc = st.columns(2)
+                with cc[0]:
+                    block(left)
+                with cc[1]:
+                    block(right)
+            else:
+                block(left)
+                block(right)
+    with top[1]:
+        with card("System", "⚙️"):
+            a1 = st.columns([1.3, 1])
+            with a1[0]:
+                w_unit_number(f"Plant product flow ({ss.get('flow_unit', 'm³/h')})", "product_flow", 37.5, "flow_unit", FLOW_UNITS, min_value=0.1, format="%.2f")
+            with a1[1]:
+                w_select("Flow unit", ["m³/h", "gpm"], "flow_unit", "m³/h")
+            a2 = st.columns(2)
+            with a2[0]:
+                w_select("RO passes", list(range(1, MAX_PASSES + 1)), "passes", 1)
+            with a2[1]:
+                w_number("Target TDS (mg/L)", "target_tds", 10.0, min_value=0.0)
+            a3 = st.columns(2)
+            with a3[0]:
+                w_select("Pressure unit", ["psi", "bar"], "pressure_unit", "psi")
+            with a3[1]:
+                w_number("Back-pressure (psi)", "perm_pressure", 0.0, min_value=0.0)
             if npass >= 2:
-                w_check("Recycle the pass-2 and later concentrates to the pass-1 feed", "recycle", True)
-        with c[2]:
+                w_check("Recycle pass-2+ concentrates to pass 1", "recycle", True)
+            for label, kind in ((f"Raw feed flow ({fun})", "raw"), ("Overall recovery (%)", "overall"), ("Product TDS (mg/L)", "tds")):
+                r = st.columns([1.5, 1])
+                r[0].markdown(rl(label), unsafe_allow_html=True)
+                with r[1]:
+                    cell(kind, 0)
             st.button("Load IMSDesign example", key="ui_example2", on_click=_cb_example)
 
-    flow_slot = st.container()      # flow diagram is drawn here, once the design is calculated
-
-    with card("Membrane Selection", "🧫"):
-        mems = []
-        for row_start in range(1, npass + 1, 2):
-            cols = st.columns(2)
-            for k_, n in enumerate(range(row_start, min(row_start + 2, npass + 1))):
-                with cols[k_]:
-                    sub(f"Pass {n}")
-                    if n == 1:
-                        m = mem_select(1)
+    # ---------------- System specifications (left) + Membrane selection (right) ----------------
+    bot = st.columns([3.1, 1.25])
+    with bot[0]:
+        with card("System Specifications", "🏗"):
+            for n in range(1, npass + 1):
+                ns = max(1, min(3, int(_stored(f"p{n}_stages", 3 if n == 1 else 2))))
+                w_ = [1.5, 1, 1, 1, 1.1]
+                h = st.columns(w_)
+                h[0].markdown(f'<span class="sub">Pass {n}</span>', unsafe_allow_html=True)
+                for i in range(1, ns + 1):
+                    h[i].markdown(f'<span class="lhead">Stage {i}</span>', unsafe_allow_html=True)
+                h[4].markdown('<span class="lhead">No. of stages</span>', unsafe_allow_html=True)
+                r = st.columns(w_)
+                r[0].markdown(rl("Membrane type"), unsafe_allow_html=True)
+                for i in range(1, ns + 1):
+                    with r[i]:
+                        cell("mem", n)
+                with r[4]:
+                    w_select(f"Pass {n} stages", [1, 2, 3], f"p{n}_stages", 3 if n == 1 else 2, label_visibility="collapsed")
+                for label, suffix, kw in (("Membranes / vessel", "e", dict(max_value=8)), ("No. of vessels", "v", {})):
+                    r = st.columns(w_)
+                    r[0].markdown(rl(label), unsafe_allow_html=True)
+                    for i in range(1, ns + 1):
+                        dv, de = DEF_STAGE[n][i]
+                        with r[i]:
+                            w_number(f"{label} p{n} s{i}", f"p{n}_s{i}_{suffix}", de if suffix == "e" else dv, min_value=1,
+                                     label_visibility="collapsed", **kw)
+    mems = []
+    with bot[1]:
+        with card("Membrane Selection", "🧫"):
+            for n in range(1, npass + 1):
+                if n == 1:
+                    sub("Pass 1")
+                    m = mem_select(1)
+                else:
+                    same = w_check(f"Pass {n}: same membrane as pass 1", f"same{n}", True)
+                    if same:
+                        m = mems[0]
                     else:
-                        same = w_check("Same membrane as pass 1", f"same{n}", True)
-                        if same:
-                            m = mems[0]
-                            st.caption("Using the pass 1 membrane.")
-                        else:
-                            m = mem_select(n)
-                    mems.append(m)
-        shown = [(n, m) for n, m in enumerate(mems, start=1) if m]
-        if shown:
-            first = shown[0][1]
-            tiles([(f"Pass {n}", f"{m['vendor']} {m['model']} · {m['type']}") for n, m in shown] +
-                  [("Element size", f"{first['size_in']:.0f} in"), ("Active area / element", f"{first['area_ft2']:.0f} ft²"), ("Nominal rejection", f"{first['rejection']:.2f} %"),
-                   ("Permeability A (25 °C)", f"{first['a_w']:.3f} gfd/psi"), ("Reference tool", vendor_profile(first["vendor"]).get("tool", "") or "-")])
+                        sub(f"Pass {n}")
+                        m = mem_select(n)
+                mems.append(m)
+            first = mems[0]
+            if first:
+                st.caption(f"{first['type']} · {first['size_in']:.0f} in · {first['area_ft2']:.0f} ft² · rejection {first['rejection']:.2f} % · "
+                           f"A {first['a_w']:.3f} gfd/psi · {vendor_profile(first['vendor']).get('tool', '') or '-'}")
+            shown = [(n, m) for n, m in enumerate(mems, start=1) if m]
             if any(str(m.get("source", "")).upper().startswith("TEMPLATE") for _, m in shown):
                 st.caption("⚠ Template membrane data - replace on the Library page.")
             notes = [f"{m['model']}: {m['notes']}" for _, m in shown if m.get("notes")]
             if notes:
                 st.caption("ℹ " + " | ".join(dict.fromkeys(notes)))
 
-    with card("Train Information", "🚂"):
-        widths = [1.5] + [1] * npass
-        h = st.columns(widths)
-        for n in range(1, npass + 1):
-            h[n].markdown(f'<span class="lhead">Pass {n}</span>', unsafe_allow_html=True)
-        specs = [("Permeate recovery (%)", "rec", dict(min_value=1.0, max_value=99.0)),
-                 ("Membrane age (years)", "age", dict(min_value=0.0)),
-                 ("Flux decline (% / year)", "decl", dict(min_value=0.0, max_value=50.0)),
-                 ("Salt passage increase (% / year)", "sp", dict(min_value=0.0))]
-        for label, base, kw in specs:
-            r = st.columns(widths)
-            r[0].markdown(f"**{label}**")
-            for n in range(1, npass + 1):
-                with r[n]:
-                    w_number(label, f"p{n}_rec" if base == "rec" else f"{base}{n}", pass_default(n, base), label_visibility="collapsed", **kw)
-        r = st.columns(widths)
-        r[0].markdown("**Fouling factor = (1 − decline)^age**")
-        for n in range(1, npass + 1):
-            r[n].markdown(f"**{(1 - _f(f'decl{n}', pass_default(n, 'decl')) / 100) ** _f(f'age{n}', pass_default(n, 'age')):.3f}**")
-
-    with card("System Specifications", "🏗"):
-        for n in range(1, npass + 1):
-            sub(f"Pass {n}")
-            n_st = int(w_select(f"Pass {n} stages", [1, 2, 3], f"p{n}_stages", 3 if n == 1 else 2))
-            stage_inputs(n, n_st)
+    # ---------------- fill the calculated cells ----------------
+    d = design_calc()
+    for ph, kind, n in fills:
+        txt_, cls = "-", "calcbox"
+        try:
+            if kind == "mem":
+                txt_, cls = (mems[n - 1]["model"] if mems[n - 1] else "-"), "ybox"
+            elif d:
+                e = d["pl"][n - 1] if n >= 1 and n <= len(d["pl"]) else None
+                c = e["calc"] if e else None
+                txt_ = {"ph": lambda: f"{e['ph_feed']:.2f}", "pflow": lambda: f"{c['p_m3h'] * kf:.2f}", "flux": lambda: f"{c['flux']:.1f}",
+                        "fflow": lambda: f"{c['f_m3h'] * kf:.2f}", "cflow": lambda: f"{c['c_m3h'] * kf:.2f}",
+                        "circ": lambda: f"{(sum(x['calc']['c_m3h'] for x in d['pl'][1:]) if d['recycle'] else 0.0) * kf:.2f}",
+                        "dose": lambda: f"{e['adj']['dose']:.2f}", "ff": lambda: f"{c['ff']:.3f}",
+                        "raw": lambda: f"{d['raw'] * kf:.2f}", "overall": lambda: f"{d['overall_rec']:.1f}",
+                        "tds": lambda: f"{d['tds_product']:.1f}"}[kind]()
+        except Exception:
+            txt_ = "-"
+        ph.markdown(f'<div class="{cls}">{hesc(txt_)}</div>', unsafe_allow_html=True)
 
     d = design_calc()
     if not d:
@@ -2363,9 +2707,19 @@ def view_design():
             st.warning("Select the membranes and enter the product flow to calculate the design.")
         return
     with flow_slot:
-        with card("Flow diagram", "🗺"):
-            _html, _h = flow_svg(d)
-            components.html(_html, height=_h, scrolling=False)
+        _html, _h = flow_svg(d)
+        _sig = hashlib.md5(_html.encode()).hexdigest()[:10]
+        with st.expander("🗺 Process flow diagram", expanded=True):       # click the header to hide / show
+            st.caption("Diagram: " + " | ".join(
+                f"Pass {e['n']}: " + " / ".join(f"{r['vessels']}x{r['elements']}" for r in e["calc"]["rows"]) for e in d["pl"]))
+            with st.container(key=f"flowdiagram_{_sig}"):      # new key whenever the design changes -> a fresh iframe
+                components.html(_html, height=_h, scrolling=False)
+            if hasattr(st, "dialog"):
+                @st.dialog("Process flow diagram", width="large")
+                def _flow_popup():
+                    components.html(_html, height=_h + 250, scrolling=True)
+                if st.button("🔍 Open in pop-up (large view)", key="ui_flow_popup"):
+                    _flow_popup()
     with card("Flows & Flux", "📊"):
         for e in d["pl"]:
             pdx = e["calc"]
@@ -2792,10 +3146,10 @@ try:
     _lvl = overall(run_checks(_d)) if _d else None
 except Exception:
     _lvl = None
+_proj_txt = hesc(str(ss.get("project_name", ""))) if ss.get("_last_saved_at") else "not saved"
 hdr_ph.markdown(
-    f'<div class="mdw"><div class="hdr"><div><div class="hdr-title">{APP_TITLE}</div>'
-    f'<div class="hdr-sub">RO design · membranes · chemicals · power</div></div>'
-    f'</div></div>',
+    f'<div class="mdw"><div class="hdr">{pond_logo_svg(68)}<div><div class="hdr-title3">HSKH RO Calculator</div>'
+    f'<div class="hdr-sub3">RO design, membranes, chemicals and power &nbsp;|&nbsp; Project: <b>{_proj_txt}</b></div></div></div></div>',
     unsafe_allow_html=True)
 
 _lvl_txt = {"ok": "✅ Design OK", "warn": "⚠ Check cautions", "bad": "❌ Red cautions"}.get(_lvl, "")
